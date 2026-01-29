@@ -1,44 +1,30 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. Configurare pagină (Wide layout)
+# 1. Configurare pagină
 st.set_page_config(
     page_title="NeuroSplit Suite",
     page_icon="🧠",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# 2. Ascundem elementele standard Streamlit pentru imersiune
+# 2. CSS minimal (ascundem doar footer-ul și meniul hamburger, dar lăsăm header-ul pentru layout corect)
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .block-container {padding: 0; margin: 0;}
+    .block-container {padding-top: 1rem; padding-bottom: 0rem;}
     
-    /* Stilizare Sidebar */
-    section[data-testid="stSidebar"] {
-        background-color: #09090b;
-        border-right: 1px solid rgba(255,255,255,0.1);
-    }
-    div[data-testid="stSidebarNav"] {
-        padding-top: 20px;
+    /* Stilizare Tab-uri pentru a fi mai mari */
+    button[data-baseweb="tab"] {
+        font-size: 1.2rem;
+        font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. Meniul de Navigare (Sidebar)
-st.sidebar.title("🧠 NeuroSplit")
-st.sidebar.markdown("---")
-app_mode = st.sidebar.radio(
-    "Alege Modul:",
-    ["🛠️ The Architect (Generator)", "🎮 The Arena (Quiz Player)"],
-    index=0
-)
-
-st.sidebar.markdown("---")
-st.sidebar.info("Selectează 'Architect' pentru a crea prompturi AI sau 'Arena' pentru a juca grilele generate.")
+# 3. Titlu Principal
+st.title("🧠 NeuroSplit Suite")
 
 # 4. Funcția de încărcare HTML
 def load_html(file_name):
@@ -48,13 +34,13 @@ def load_html(file_name):
     except FileNotFoundError:
         return f"<h1 style='color:red'>Eroare: Nu am găsit fișierul {file_name}!</h1>"
 
-# 5. Afișarea conținutului în funcție de selecție
-if app_mode == "🛠️ The Architect (Generator)":
+# 5. Crearea Tab-urilor (Navigația)
+tab_generator, tab_joc = st.tabs(["🛠️ The Architect (Generator)", "🎮 The Arena (Quiz Player)"])
+
+with tab_generator:
     html_code = load_html("generator.html")
-    # Height mare pentru generator
     components.html(html_code, height=1300, scrolling=True)
 
-elif app_mode == "🎮 The Arena (Quiz Player)":
+with tab_joc:
     html_code = load_html("game.html")
-    # Height pentru joc
     components.html(html_code, height=1200, scrolling=True)
