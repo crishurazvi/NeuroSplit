@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroSplit | Quiz Arena</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        /* --- DESIGN SYSTEM (NeuroSplit Theme) --- */
+        :root {
+            --bg-body: #09090b;
+            --bg-gradient-1: rgba(167, 139, 250, 0.15);
+            --bg-gradient-2: rgba(45, 212, 191, 0.15);
+            --panel-bg: rgba(24, 24, 27, 0.75);
+            --panel-border: rgba(255, 255, 255, 0.1);
+            
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --text-accent: #a78bfa; /* Violet */
+            --text-secondary: #2dd4bf; /* Teal */
+            --text-error: #fb7185; /* Rose */
+
+            --btn-bg: linear-gradient(135deg, #8b5cf6, #6366f1);
+            --btn-hover: linear-gradient(135deg, #7c3aed, #4f46e5);
+            
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --option-bg: rgba(255, 255, 255, 0.03);
+            --option-hover: rgba(255, 255, 255, 0.08);
+        }
+
+        body.light-mode {
+            --bg-body: #f8fafc;
+            --bg-gradient-1: rgba(139, 92, 246, 0.1);
+            --bg-gradient-2: rgba(14, 165, 233, 0.1);
+            --panel-bg: rgba(255, 255, 255, 0.85);
+            --panel-border: rgba(0, 0, 0, 0.1);
+            
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --text-accent: #7c3aed;
+            --text-secondary: #0891b2;
+            
+            --shadow: 0 8px 24px rgba(148, 163, 184, 0.15);
+            --option-bg: rgba(0, 0, 0, 0.03);
+            --option-hover: rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; outline: none; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(circle at 10% 20%, var(--bg-gradient-1) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, var(--bg-gradient-2) 0%, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- LAYOUT COMPONENTS --- */
+        .header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 0 10px;
+        }
+
+        .brand h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--text-accent), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .icon-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        .icon-btn:hover { transform: translateY(-2px); }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+        }
+
+        .hidden { display: none !important; }
+
+        /* --- PANELS (Glassmorphism) --- */
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            animation: slideUp 0.4s ease;
+        }
+
+        /* --- START SCREEN GRID --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media(max-width: 600px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .stat-val { font-weight: bold; color: var(--text-main); }
+        .stat-highlight { color: var(--text-accent); font-size: 1.1rem; }
+
+        .upload-area {
+            border: 2px dashed var(--panel-border);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            background: rgba(0,0,0,0.1);
+        }
+        .upload-area:hover { border-color: var(--text-accent); background: rgba(0,0,0,0.2); }
+
+        /* --- HISTORY LIST --- */
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid var(--panel-border);
+            font-size: 0.9rem;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .play-count-badge {
+            background: var(--text-secondary);
+            color: #000;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .replay-btn {
+            background: transparent;
+            color: var(--text-accent);
+            border: 1px solid var(--text-accent);
+            border-radius: 8px;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .replay-btn:hover { background: var(--text-accent); color: white; }
+
+        /* --- GAME CARD --- */
+        .q-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .q-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .options-grid { display: grid; gap: 12px; }
+
+        .btn-option {
+            background: var(--option-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1rem;
+            position: relative;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .btn-option:hover:not(.disabled) { background: var(--option-hover); transform: translateX(5px); }
+        .btn-option.disabled { cursor: default; opacity: 0.8; }
+        
+        /* State Colors */
+        .btn-option.selected { border-color: var(--text-accent); background: rgba(167, 139, 250, 0.1); }
+        .btn-option.correct { border-color: var(--text-secondary); background: rgba(45, 212, 191, 0.15) !important; }
+        .btn-option.wrong { border-color: var(--text-error); background: rgba(251, 113, 133, 0.15) !important; animation: shake 0.4s; }
+
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 20px;
+            border-radius: 12px;
+            border: none;
+            background: var(--btn-bg);
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+        .action-btn:hover { background: var(--btn-hover); transform: translateY(-2px); }
+
+        /* --- EXPLANATION & MISTAKES --- */
+        .explanation-box {
+            margin-top: 20px;
+            background: rgba(45, 212, 191, 0.05);
+            border-left: 3px solid var(--text-secondary);
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .mistake-card {
+            background: rgba(251, 113, 133, 0.05);
+            border: 1px solid rgba(251, 113, 133, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .mistake-title { font-weight: bold; color: var(--text-error); margin-bottom: 5px; display: block;}
+        .mistake-text { margin-bottom: 10px; font-size: 1rem; }
+        .mistake-exp { font-size: 0.9rem; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px; margin-top: 8px;}
+
+        /* --- NAVIGATION --- */
+        .nav-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .nav-btn {
+            background: var(--option-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            width: 45px; height: 45px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .nav-btn:hover { background: var(--option-hover); border-color: var(--text-accent); }
+        
+        .progress-bar-container { flex-grow: 1; height: 6px; background: var(--panel-border); border-radius: 3px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; background: var(--text-accent); transition: width 0.3s; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="brand">
+            <h1>NeuroSplit AI</h1>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="icon-btn" onclick="toggleTheme()">
+                <span id="theme-icon">☀️</span> Theme
+            </button>
+            <button class="icon-btn hidden" id="home-btn-nav" onclick="goHome()">
+                🏠 Home
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <div id="start-screen">
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <h3 style="margin-top:0; color:var(--text-accent)">👤 Profil Jucător</h3>
+                    <div class="stat-row">
+                        <span>Rang:</span>
+                        <span class="stat-val" id="rank-display">Novice</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Nivel:</span>
+                        <span class="stat-highlight" id="lvl-start">1</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>XP Total:</span>
+                        <span class="stat-val" id="xp-start">0</span>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3 style="margin-top:0; color:var(--text-secondary)">🚀 Sesiune Nouă</h3>
+                    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">📂</div>
+                        <p style="margin:0; font-weight:bold;">Încarcă Grile (.txt)</p>
+                        <p style="margin:0; font-size:0.8rem; color:var(--text-muted)">Drag & Drop sau Click</p>
+                        <input type="file" id="fileInput" accept=".txt" style="display: none" onchange="loadFile(this)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" id="history-panel" style="display:none;">
+                <h3 style="margin-top:0; color:var(--text-muted); font-size:0.9rem; text-transform:uppercase;">📚 Istoric Sesiune Actuală</h3>
+                <ul class="history-list" id="history-list">
+                    </ul>
+            </div>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px; color:var(--text-muted); font-size:0.9rem;">
+                <span>🔥 Streak: <b style="color:orange" id="streak-display">0</b></span>
+                <span>✨ XP: <b style="color:var(--text-accent)" id="xp-display">0</b></span>
+            </div>
+
+            <div class="panel" id="question-card">
+                <div class="q-meta">
+                    <span id="q-type">Single Choice</span>
+                    <span id="q-counter">1 / 10</span>
+                </div>
+                
+                <div class="q-text" id="question-text">Loading...</div>
+                
+                <div class="options-grid" id="options-container"></div>
+
+                <button id="validate-btn" class="action-btn hidden" onclick="submitMultiAnswer()">Validează Răspunsul</button>
+
+                <div id="explanation-container" class="explanation-box hidden">
+                    <strong style="color:var(--text-secondary)">💡 Explicație:</strong>
+                    <div id="explanation-text" style="margin-top:5px;"></div>
+                </div>
+            </div>
+
+            <div class="nav-controls" id="nav-controls">
+                <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">⬅</button>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <button class="nav-btn" id="next-btn" onclick="navigate(1)">➡</button>
+            </div>
+        </div>
+
+        <div id="review-screen" class="hidden">
+            <div class="panel" style="text-align: center;">
+                <h2 style="color:var(--text-secondary)">🎉 Capitol Completat!</h2>
+                <p>Ai acumulat <strong style="color:var(--text-accent)" id="session-xp">0</strong> XP în această rundă.</p>
+                <button class="action-btn" onclick="goHome()">Meniu Principal</button>
+            </div>
+
+            <div id="mistakes-container" class="hidden">
+                <h3 style="color:var(--text-error); margin-left:10px;">🔴 Zona de Învățare (Greșeli):</h3>
+                <div id="mistakes-list"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. GLOBAL STATE & INIT ---
+        let gameState = {
+            questions: [],
+            currentIndex: 0,
+            streak: 0,
+            xp: 0,
+            level: 1,
+            userHistory: {}, // { index: { answered: bool, correct: bool, selected: [] } }
+            mistakes: [] // Obiecte complete pt review
+        };
+
+        // Istoric Sesiune (în memorie, se resetează la refresh)
+        let sessionFiles = []; 
+
+        // Load Persisted Stats
+        const savedStats = localStorage.getItem('neuroQuizStats');
+        if (savedStats) {
+            const parsed = JSON.parse(savedStats);
+            gameState.xp = parsed.xp || 0;
+            gameState.level = parsed.level || 1;
+        }
+        updateProfileUI();
+
+        // --- 2. THEME LOGIC ---
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            document.getElementById('theme-icon').innerText = isLight ? '🌙' : '☀️';
+        }
+
+        // --- 3. FILE HANDLING & HISTORY ---
+        function loadFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const fileName = file.name.replace('.txt', '');
+                
+                // Add to history if not exists
+                let fileObj = sessionFiles.find(f => f.name === fileName);
+                if (!fileObj) {
+                    fileObj = { id: Date.now(), name: fileName, content: content, plays: 0 };
+                    sessionFiles.push(fileObj);
+                }
+                
+                renderHistory();
+                launchGame(fileObj);
+            };
+            reader.readAsText(file);
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            const panel = document.getElementById('history-panel');
+            
+            if (sessionFiles.length > 0) panel.style.display = 'block';
+            list.innerHTML = '';
+
+            sessionFiles.forEach(file => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.innerHTML = `
+                    <div>
+                        <span class="play-count-badge">Played: ${file.plays}</span>
+                        <strong>${file.name}</strong>
+                    </div>
+                    <button class="replay-btn" onclick="replayFile(${file.id})">▶ Joacă</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function replayFile(id) {
+            const fileObj = sessionFiles.find(f => f.id === id);
+            if (fileObj) launchGame(fileObj);
+        }
+
+        // --- 4. GAME LAUNCHER ---
+        function launchGame(fileObj) {
+            // Increment Play Count
+            fileObj.plays++;
+            renderHistory();
+
+            // Parse & Reset
+            parseQuestions(fileObj.content);
+            gameState.currentIndex = 0;
+            gameState.streak = 0;
+            gameState.userHistory = {};
+            gameState.mistakes = [];
+            
+            // Switch UI
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('review-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('home-btn-nav').classList.remove('hidden');
+            
+            updateGameHUD();
+            renderQuestion();
+        }
+
+        function parseQuestions(text) {
+            const rawBlocks = text.split('---');
+            gameState.questions = [];
+
+            rawBlocks.forEach(block => {
+                const lines = block.trim().split('\n').map(l => l.trim()).filter(l => l);
+                if (lines.length < 3) return;
+
+                let qObj = { text: '', options: {}, correct: [], explanation: '' };
+                
+                lines.forEach(line => {
+                    if (line.startsWith('Q:')) qObj.text = line.substring(2).trim();
+                    else if (line.match(/^[A-Z]:/)) {
+                        let key = line.charAt(0);
+                        qObj.options[key] = line.substring(2).trim();
+                    }
+                    else if (line.startsWith('CORRECT:')) {
+                        let rawCorrect = line.substring(8).trim().toUpperCase();
+                        qObj.correct = rawCorrect.split(',').map(s => s.trim());
+                    }
+                    else if (line.startsWith('EXPLICATIE:') || line.startsWith('RASPUNS:')) {
+                        qObj.explanation = line.substring(line.indexOf(':') + 1).trim();
+                    }
+                });
+
+                if (qObj.text && qObj.correct.length > 0) {
+                    gameState.questions.push(qObj);
+                }
+            });
+            gameState.questions.sort(() => Math.random() - 0.5);
+        }
+
+        // --- 5. GAME LOOP ---
+        function renderQuestion() {
+            const q = gameState.questions[gameState.currentIndex];
+            const history = getHistory(gameState.currentIndex);
+
+            // UI Reset
+            document.getElementById('explanation-container').classList.add('hidden');
+            document.getElementById('validate-btn').classList.add('hidden');
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            // Meta Info
+            document.getElementById('question-text').innerText = q.text;
+            document.getElementById('q-counter').innerText = `${gameState.currentIndex + 1} / ${gameState.questions.length}`;
+            const isMulti = q.correct.length > 1;
+            document.getElementById('q-type').innerText = isMulti ? "Multi Choice" : "Single Choice";
+            document.getElementById('q-type').style.color = isMulti ? 'var(--text-secondary)' : 'var(--text-muted)';
+
+            // Generate Buttons
+            for (const [key, value] of Object.entries(q.options)) {
+                const btn = document.createElement('div');
+                btn.className = 'btn-option';
+                btn.innerHTML = `<strong style="color:var(--text-accent)">${key})</strong> ${value}`;
+                
+                if (history.answered) {
+                    btn.classList.add('disabled');
+                    if (q.correct.includes(key)) btn.classList.add('correct');
+                    if (history.selected.includes(key) && !q.correct.includes(key)) btn.classList.add('wrong');
+                } else {
+                    btn.onclick = () => isMulti ? toggleMulti(key, btn) : checkSingle(key, btn);
+                    if (history.selected.includes(key)) btn.classList.add('selected'); // Temp selection restore
+                }
+                container.appendChild(btn);
+            }
+
+            // Controls visibility
+            if (!history.answered && isMulti) {
+                document.getElementById('validate-btn').classList.remove('hidden');
+            }
+            if (history.answered) {
+                document.getElementById('explanation-text').innerText = q.explanation || "Fără explicație.";
+                document.getElementById('explanation-container').classList.remove('hidden');
+            }
+
+            // Navigation State
+            const prevBtn = document.getElementById('prev-btn');
+            prevBtn.style.opacity = gameState.currentIndex === 0 ? '0.5' : '1';
+            prevBtn.style.pointerEvents = gameState.currentIndex === 0 ? 'none' : 'auto';
+
+            updateProgressBar();
+        }
+
+        // Interaction Logic
+        function toggleMulti(key, btn) {
+            let h = getHistory(gameState.currentIndex);
+            if (h.answered) return;
+
+            if (h.selected.includes(key)) {
+                h.selected = h.selected.filter(k => k !== key);
+                btn.classList.remove('selected');
+            } else {
+                h.selected.push(key);
+                btn.classList.add('selected');
+            }
+            gameState.userHistory[gameState.currentIndex] = h;
+        }
+
+        function submitMultiAnswer() {
+            let h = getHistory(gameState.currentIndex);
+            if (h.answered || h.selected.length === 0) return;
+
+            const q = gameState.questions[gameState.currentIndex];
+            const sortedSel = [...h.selected].sort().join(',');
+            const sortedCor = [...q.correct].sort().join(',');
+            const isCorrect = sortedSel === sortedCor;
+
+            finalizeAnswer(isCorrect, q, h);
+        }
+
+        function checkSingle(key, btn) {
+            let h = getHistory(gameState.currentIndex);
+            if (h.answered) return;
+
+            const q = gameState.questions[gameState.currentIndex];
+            h.selected = [key];
+            const isCorrect = q.correct.includes(key);
+
+            finalizeAnswer(isCorrect, q, h);
+        }
+
+        function finalizeAnswer(isCorrect, q, h) {
+            h.answered = true;
+            h.isCorrect = isCorrect;
+            gameState.userHistory[gameState.currentIndex] = h;
+
+            if (isCorrect) {
+                gameState.streak++;
+                let gain = 10 + (gameState.streak * 2);
+                gameState.xp += gain;
+                if(gameState.streak % 5 === 0) confetti({ particleCount: 100, spread: 70, origin: { y: 0.7 } });
+                checkLevelUp();
+            } else {
+                gameState.streak = 0;
+                // Add to mistakes for review
+                gameState.mistakes.push({
+                    question: q.text,
+                    yourAnswer: h.selected.join(', '),
+                    correctAnswer: q.correct.join(', '),
+                    explanation: q.explanation
+                });
+            }
+
+            saveStats();
+            updateGameHUD();
+            renderQuestion(); // Re-render to show feedback
+        }
+
+        // --- 6. NAVIGATION & ENDING ---
+        function navigate(dir) {
+            const nextIdx = gameState.currentIndex + dir;
+            if (nextIdx < 0) return;
+            
+            if (nextIdx >= gameState.questions.length) {
+                // Check if last question is answered before finishing
+                if (getHistory(gameState.currentIndex).answered) {
+                    finishChapter();
+                }
+                return;
+            }
+            gameState.currentIndex = nextIdx;
+            renderQuestion();
+        }
+
+        function finishChapter() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('review-screen').classList.remove('hidden');
+            document.getElementById('nav-controls').classList.add('hidden');
+            
+            // Show session stats
+            document.getElementById('session-xp').innerText = getSessionXP(); 
+            
+            // Render Mistakes
+            const mistList = document.getElementById('mistakes-list');
+            const mistCont = document.getElementById('mistakes-container');
+            mistList.innerHTML = '';
+            
+            if (gameState.mistakes.length > 0) {
+                mistCont.classList.remove('hidden');
+                gameState.mistakes.forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = 'mistake-card';
+                    card.innerHTML = `
+                        <span class="mistake-title">❌ ${m.question}</span>
+                        <div class="mistake-text">Ai răspuns: <b>${m.yourAnswer}</b> | Corect: <b style="color:var(--text-secondary)">${m.correctAnswer}</b></div>
+                        <div class="mistake-exp">💡 ${m.explanation}</div>
+                    `;
+                    mistList.appendChild(card);
+                });
+            } else {
+                mistCont.classList.add('hidden');
+                mistList.innerHTML = '<p style="text-align:center; color:var(--text-secondary)">Felicitări! Nicio greșeală!</p>';
+            }
+            confetti({ particleCount: 300, spread: 160 });
+        }
+
+        function goHome() {
+            document.getElementById('review-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('home-btn-nav').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            updateProfileUI(); // Refresh main profile stats
+        }
+
+        // --- 7. UTILS & HELPERS ---
+        function getHistory(idx) {
+            if (!gameState.userHistory[idx]) {
+                gameState.userHistory[idx] = { answered: false, selected: [], isCorrect: false };
+            }
+            return gameState.userHistory[idx];
+        }
+
+        function updateGameHUD() {
+            document.getElementById('xp-display').innerText = gameState.xp;
+            document.getElementById('streak-display').innerText = gameState.streak;
+        }
+
+        function updateProfileUI() {
+            document.getElementById('lvl-start').innerText = gameState.level;
+            document.getElementById('xp-start').innerText = gameState.xp;
+            
+            // Rank Logic
+            let rank = "Novice";
+            if(gameState.level > 5) rank = "Învățăcel";
+            if(gameState.level > 10) rank = "Specialist";
+            if(gameState.level > 20) rank = "Expert";
+            if(gameState.level > 50) rank = "Grandmaster";
+            document.getElementById('rank-display').innerText = rank;
+        }
+
+        function checkLevelUp() {
+            if (gameState.xp >= gameState.level * 100) {
+                gameState.level++;
+                confetti({ particleCount: 150, spread: 100 });
+            }
+        }
+
+        function updateProgressBar() {
+            const pct = ((gameState.currentIndex + 1) / gameState.questions.length) * 100;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+        }
+
+        function saveStats() {
+            localStorage.setItem('neuroQuizStats', JSON.stringify({
+                xp: gameState.xp,
+                level: gameState.level
+            }));
+        }
+
+        function getSessionXP() {
+            // Un calcul simplu sau diferenta fata de start, 
+            // aici afisam doar totalul pt simplitate vizuala in acest demo
+            return gameState.xp; 
+        }
+    </script>
+</body>
+</html>
