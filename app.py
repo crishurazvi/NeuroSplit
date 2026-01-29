@@ -1,37 +1,60 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. Configurare pagină pentru a folosi tot spațiul
+# 1. Configurare pagină (Wide layout)
 st.set_page_config(
-    page_title="NeuroSplit Quiz Arena",
+    page_title="NeuroSplit Suite",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# 2. Ascundem meniul standard Streamlit și footer-ul pentru un look "clean"
-hide_streamlit_style = """
+# 2. Ascundem elementele standard Streamlit pentru imersiune
+st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .block-container {
-        padding-top: 0rem;
-        padding-bottom: 0rem;
-        padding-left: 0rem;
-        padding-right: 0rem;
+    .block-container {padding: 0; margin: 0;}
+    
+    /* Stilizare Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #09090b;
+        border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    div[data-testid="stSidebarNav"] {
+        padding-top: 20px;
     }
 </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# 3. Citim fișierul HTML
-def load_html():
-    with open("index.html", "r", encoding="utf-8") as f:
-        return f.read()
+# 3. Meniul de Navigare (Sidebar)
+st.sidebar.title("🧠 NeuroSplit")
+st.sidebar.markdown("---")
+app_mode = st.sidebar.radio(
+    "Alege Modul:",
+    ["🛠️ The Architect (Generator)", "🎮 The Arena (Quiz Player)"],
+    index=0
+)
 
-html_code = load_html()
+st.sidebar.markdown("---")
+st.sidebar.info("Selectează 'Architect' pentru a crea prompturi AI sau 'Arena' pentru a juca grilele generate.")
 
-# 4. Randăm HTML-ul în Streamlit
-# height=1200 asigură că avem destul loc pe verticală fără scroll dublu
-components.html(html_code, height=1200, scrolling=True)
+# 4. Funcția de încărcare HTML
+def load_html(file_name):
+    try:
+        with open(file_name, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return f"<h1 style='color:red'>Eroare: Nu am găsit fișierul {file_name}!</h1>"
+
+# 5. Afișarea conținutului în funcție de selecție
+if app_mode == "🛠️ The Architect (Generator)":
+    html_code = load_html("generator.html")
+    # Height mare pentru generator
+    components.html(html_code, height=1300, scrolling=True)
+
+elif app_mode == "🎮 The Arena (Quiz Player)":
+    html_code = load_html("game.html")
+    # Height pentru joc
+    components.html(html_code, height=1200, scrolling=True)
