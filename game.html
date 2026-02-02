@@ -3,444 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroSplit | Quiz Arena Cloud</title>
+    <title>NeuroSplit | Auth & Cloud</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- SUPABASE LIBRARY -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* CSS-ul rămâne neschimbat (folosim același design system) */
+        /* CSS-ul anterior rămâne neschimbat, adăugăm doar câteva clase noi pentru Auth */
         :root {
             --bg-body: #09090b;
-            --bg-gradient-1: rgba(167, 139, 250, 0.15);
-            --bg-gradient-2: rgba(45, 212, 191, 0.15);
-            --panel-bg: rgba(24, 24, 27, 0.75);
+            --panel-bg: rgba(24, 24, 27, 0.85);
             --panel-border: rgba(255, 255, 255, 0.1);
             --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
             --text-accent: #a78bfa;
             --text-secondary: #2dd4bf;
             --text-error: #fb7185;
-            --btn-bg: linear-gradient(135deg, #8b5cf6, #6366f1);
-            --btn-hover: linear-gradient(135deg, #7c3aed, #4f46e5);
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            --option-bg: rgba(255, 255, 255, 0.03);
-            --option-hover: rgba(255, 255, 255, 0.08);
         }
-        body.light-mode {
-            --bg-body: #f8fafc;
-            --bg-gradient-1: rgba(139, 92, 246, 0.1);
-            --bg-gradient-2: rgba(14, 165, 233, 0.1);
-            --panel-bg: rgba(255, 255, 255, 0.85);
-            --panel-border: rgba(0, 0, 0, 0.1);
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --text-accent: #7c3aed;
-            --text-secondary: #0891b2;
-            --shadow: 0 8px 24px rgba(148, 163, 184, 0.15);
-            --option-bg: rgba(0, 0, 0, 0.03);
-            --option-hover: rgba(0, 0, 0, 0.06);
-        }
-        * { box-sizing: border-box; outline: none; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-body);
-            background-image: radial-gradient(circle at 10% 20%, var(--bg-gradient-1) 0%, transparent 50%), radial-gradient(circle at 90% 80%, var(--bg-gradient-2) 0%, transparent 50%);
-            background-attachment: fixed; color: var(--text-main); margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-        }
-        .header { width: 100%; max-width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .brand h1 { font-size: 1.5rem; margin: 0; font-weight: 800; background: linear-gradient(to right, var(--text-accent), var(--text-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .icon-btn { background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-main); padding: 8px 12px; border-radius: 12px; cursor: pointer; backdrop-filter: blur(10px); display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
-        .container { width: 100%; max-width: 800px; position: relative; }
+
+        /* [Păstrează tot stilul tău anterior aici...] */
+        /* Adăugări pentru Interfața Nouă: */
+        .auth-container { max-width: 400px; margin: 100px auto; padding: 30px; border-radius: 20px; background: var(--panel-bg); border: 1px solid var(--panel-border); text-align: center; }
+        .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid var(--panel-border); background: rgba(255,255,255,0.05); color: white; }
+        .nav-header { display: flex; justify-content: space-between; width: 100%; max-width: 800px; margin-bottom: 20px; }
+        .btn-small { padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 8px; border: 1px solid var(--panel-border); background: transparent; color: var(--text-muted); }
+        .btn-delete { color: var(--text-error); border-color: var(--text-error); margin-left: 10px; }
+        .btn-delete:hover { background: var(--text-error); color: white; }
+        
+        /* [Copiază aici restul stilurilor tale din versiunea anterioară] */
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-main); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .panel { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 20px; padding: 25px; margin-bottom: 20px; width: 100%; }
         .hidden { display: none !important; }
-        .panel { background: var(--panel-bg); backdrop-filter: blur(20px); border: 1px solid var(--panel-border); border-radius: 20px; padding: 25px; box-shadow: var(--shadow); margin-bottom: 20px; animation: slideUp 0.4s ease; }
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media(max-width: 600px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted); }
-        .stat-val { font-weight: bold; color: var(--text-main); }
-        .stat-highlight { color: var(--text-accent); font-size: 1.1rem; }
-        .upload-area { border: 2px dashed var(--panel-border); border-radius: 15px; padding: 30px; text-align: center; cursor: pointer; transition: 0.3s; background: rgba(0,0,0,0.1); }
-        .history-list { list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--panel-border); }
-        .play-count-badge { background: var(--text-secondary); color: #000; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; margin-right: 10px; font-weight: bold; }
-        .replay-btn { background: transparent; color: var(--text-accent); border: 1px solid var(--text-accent); border-radius: 8px; padding: 4px 10px; cursor: pointer; }
-        .q-meta { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 15px; display: flex; justify-content: space-between; }
-        .q-text { font-size: 1.25rem; font-weight: 600; margin-bottom: 25px; }
-        .options-grid { display: grid; gap: 12px; }
-        .btn-option { background: var(--option-bg); border: 1px solid var(--panel-border); color: var(--text-main); padding: 16px; border-radius: 12px; cursor: pointer; }
-        .btn-option.correct { border-color: var(--text-secondary); background: rgba(45, 212, 191, 0.15) !important; }
-        .btn-option.wrong { border-color: var(--text-error); background: rgba(251, 113, 133, 0.15) !important; }
-        .action-btn { width: 100%; padding: 14px; margin-top: 20px; border-radius: 12px; border: none; background: var(--btn-bg); color: white; font-weight: bold; cursor: pointer; }
-        .explanation-box { margin-top: 20px; background: rgba(45, 212, 191, 0.05); border-left: 3px solid var(--text-secondary); padding: 15px; border-radius: 0 8px 8px 0; }
-        .nav-controls { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
-        .progress-bar-container { flex-grow: 1; height: 6px; background: var(--panel-border); border-radius: 3px; overflow: hidden; }
-        .progress-bar { height: 100%; width: 0%; background: var(--text-accent); transition: width 0.3s; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .upload-area { border: 2px dashed var(--panel-border); padding: 30px; text-align: center; cursor: pointer; border-radius: 15px; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--panel-border); }
+        .action-btn { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; padding: 12px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="brand"><h1>NeuroSplit | Quiz Arena</h1></div>
-        <div style="display:flex; gap:10px;">
-            <button class="icon-btn" onclick="toggleTheme()"><span id="theme-icon">☀️</span> Theme</button>
-            <button class="icon-btn hidden" id="home-btn-nav" onclick="goHome()">🏠 Home</button>
-        </div>
+    <!-- ECRAN AUTENTIFICARE -->
+    <div id="auth-screen" class="auth-container">
+        <h1 style="color: var(--text-accent);">NeuroSplit</h1>
+        <p style="color: var(--text-muted);">Intră în Arena Grilelor</p>
+        <input type="email" id="auth-email" class="auth-input" placeholder="Email">
+        <input type="password" id="auth-password" class="auth-input" placeholder="Parolă">
+        <button class="action-btn" onclick="handleAuth('login')">Conectare</button>
+        <p style="margin: 15px 0; font-size: 0.8rem;">sau</p>
+        <button class="btn-small" onclick="handleAuth('signup')">Creează Cont Nou</button>
+        <p id="auth-error" style="color: var(--text-error); font-size: 0.8rem; margin-top: 10px;"></p>
     </div>
 
-    <div class="container">
-        <!-- START SCREEN -->
+    <!-- ECRAN PRINCIPAL -->
+    <div id="main-app" class="hidden" style="width: 100%; max-width: 800px;">
+        <div class="nav-header">
+            <span style="color: var(--text-muted);">Bun venit, <b id="display-username" style="color: var(--text-secondary);">...</b></span>
+            <button class="btn-small" onclick="handleLogout()">Ieșire (Logout)</button>
+        </div>
+
         <div id="start-screen">
-            <div class="dashboard-grid">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="panel">
-                    <h3 style="margin-top:0; color:var(--text-accent)">👤 Profil Cloud</h3>
-                    <div class="stat-row"><span>ID Utilizator:</span><span class="stat-val" id="user-id-display">...</span></div>
-                    <div class="stat-row"><span>Nivel:</span><span class="stat-highlight" id="lvl-start">1</span></div>
-                    <div class="stat-row"><span>XP Total:</span><span class="stat-val" id="xp-start">0</span></div>
+                    <h3 style="color: var(--text-accent); margin-top:0;">👤 Profil</h3>
+                    <div id="profile-view">
+                        <div class="stat-row"><span>Nume:</span> <b id="user-name-label">...</b></div>
+                        <div class="stat-row"><span>Nivel:</span> <b id="lvl-start">1</b></div>
+                        <div class="stat-row"><span>XP:</span> <b id="xp-start">0</b></div>
+                        <button class="btn-small" onclick="toggleEditProfile(true)" style="margin-top:10px;">Editează Nume</button>
+                    </div>
+                    <div id="profile-edit" class="hidden">
+                        <input type="text" id="edit-username-input" class="auth-input" placeholder="Nume nou">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-small" onclick="saveNewUsername()">Salvează</button>
+                            <button class="btn-small" onclick="toggleEditProfile(false)">Anulează</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="panel">
-                    <h3 style="margin-top:0; color:var(--text-secondary)">🚀 Sesiune Nouă</h3>
-                    <div class="upload-area" id="drop-zone" onclick="document.getElementById('fileInput').click()">
-                        <div style="font-size: 2rem; margin-bottom: 10px;">📂</div>
-                        <p style="margin:0; font-weight:bold;">Încarcă Grile (.txt)</p>
-                        <p id="upload-status" style="margin:0; font-size:0.8rem; color:var(--text-muted)">Se salvează permanent în cloud</p>
+                    <h3 style="color: var(--text-secondary); margin-top:0;">🚀 Încarcă Grile</h3>
+                    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                        <div style="font-size: 1.5rem;">📂</div>
+                        <p style="font-size: 0.8rem; margin: 5px 0;">Click pentru .txt</p>
                         <input type="file" id="fileInput" accept=".txt" style="display: none" onchange="handleFileUpload(this)">
                     </div>
                 </div>
             </div>
 
-            <div class="panel" id="history-panel" style="display:none;">
-                <h3 style="margin-top:0; color:var(--text-muted); font-size:0.9rem; text-transform:uppercase;">📚 Grilele Tale Salvate</h3>
-                <ul class="history-list" id="history-list"></ul>
+            <div class="panel" id="history-panel" style="display:none; margin-top:20px;">
+                <h3 style="color: var(--text-muted); font-size: 0.8rem;">ISTORIC GRILE</h3>
+                <div id="history-list"></div>
             </div>
         </div>
-
-        <!-- GAME SCREEN -->
-        <div id="game-screen" class="hidden">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px; color:var(--text-muted); font-size:0.9rem;">
-                <span>🔥 Streak: <b style="color:orange" id="streak-display">0</b></span>
-                <span>✨ XP: <b style="color:var(--text-accent)" id="xp-display">0</b></span>
-            </div>
-            <div class="panel" id="question-card">
-                <div class="q-meta"><span id="q-type">...</span><span id="q-counter">...</span></div>
-                <div class="q-text" id="question-text">Loading...</div>
-                <div class="options-grid" id="options-container"></div>
-                <button id="validate-btn" class="action-btn hidden" onclick="submitMultiAnswer()">Validează Răspunsul</button>
-                <div id="explanation-container" class="explanation-box hidden">
-                    <strong style="color:var(--text-secondary)">💡 Explicație:</strong>
-                    <div id="explanation-text" style="margin-top:5px;"></div>
-                </div>
-            </div>
-            <div class="nav-controls">
-                <button class="icon-btn" id="prev-btn" onclick="navigate(-1)">⬅</button>
-                <div class="progress-bar-container"><div class="progress-bar" id="progress-bar"></div></div>
-                <button class="icon-btn" id="next-btn" onclick="navigate(1)">➡</button>
-            </div>
-        </div>
-
-        <!-- REVIEW SCREEN -->
-        <div id="review-screen" class="hidden">
-            <div class="panel" style="text-align: center;">
-                <h2 style="color:var(--text-secondary)">🎉 Capitol Completat!</h2>
-                <p>Progresul a fost salvat în cloud.</p>
-                <button class="action-btn" onclick="goHome()">Meniu Principal</button>
-            </div>
-            <div id="mistakes-container" class="hidden">
-                <h3 style="color:var(--text-error); margin-left:10px;">🔴 Greșeli:</h3>
-                <div id="mistakes-list"></div>
-            </div>
-        </div>
+        
+        <!-- [Aici rămâne restul structurii tale pentru game-screen și review-screen din versiunea anterioară] -->
     </div>
 
     <script>
-        // --- CONFIGURARE SUPABASE ---
-        // ÎNLOCUIEȘTE CU DATELE TALE DIN SUPABASE PROJECT SETTINGS
-        const SUPABASE_URL = 'https://xfmtqlhvqjdsynoonkoo.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_yOAvTROODK4KdkY_abuhEw_bcT2m5Tl';
+        // --- CONFIG ---
+        const SUPABASE_URL = 'https://XYZ.supabase.co'; // Adaugă URL-ul tău
+        const SUPABASE_KEY = 'CHEIA_ANON_PUBLICA';      // Adaugă Cheia ta
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- STATE GLOBAL ---
-        let gameState = {
-            questions: [],
-            currentIndex: 0,
-            streak: 0,
-            xp: 0,
-            level: 1,
-            userHistory: {},
-            mistakes: [],
-            userId: null
-        };
+        let currentUser = null;
         let cloudFiles = [];
 
-        // --- INITIALIZARE ---
-        window.onload = async () => {
-            initUserId();
-            await loadUserData();
-            await loadCloudQuizzes();
-        };
+        // --- AUTH LOGIC ---
+        async function handleAuth(type) {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errorEl = document.getElementById('auth-error');
 
-        function initUserId() {
-            let id = localStorage.getItem('neuroSplit_userId');
-            if (!id) {
-                id = 'user_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('neuroSplit_userId', id);
-            }
-            gameState.userId = id;
-            document.getElementById('user-id-display').innerText = id;
-        }
+            const { data, error } = (type === 'signup') 
+                ? await _supabase.auth.signUp({ email, password })
+                : await _supabase.auth.signInWithPassword({ email, password });
 
-        async function loadUserData() {
-            const { data, error } = await _supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', gameState.userId)
-                .single();
-
-            if (data) {
-                gameState.xp = data.xp;
-                gameState.level = data.level;
-                updateProfileUI();
+            if (error) {
+                errorEl.innerText = error.message;
             } else {
-                // Dacă nu există, creăm profilul
-                await _supabase.from('profiles').insert([{ id: gameState.userId, xp: 0, level: 1 }]);
+                checkUser();
             }
         }
 
-        async function loadCloudQuizzes() {
-            const { data, error } = await _supabase
-                .from('quizzes')
-                .select('*')
-                .eq('user_id', gameState.userId)
-                .order('created_at', { ascending: false });
+        async function handleLogout() {
+            await _supabase.auth.signOut();
+            location.reload();
+        }
 
+        async function checkUser() {
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                await loadUserProfile();
+                await loadCloudQuizzes();
+            }
+        }
+
+        _supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') checkUser();
+        });
+
+        // --- PROFILE LOGIC ---
+        async function loadUserProfile() {
+            const { data, error } = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
             if (data) {
-                cloudFiles = data;
-                renderHistory();
+                document.getElementById('user-name-label').innerText = data.username || "Fără nume";
+                document.getElementById('display-username').innerText = data.username || currentUser.email;
+                document.getElementById('lvl-start').innerText = data.level;
+                document.getElementById('xp-start').innerText = data.xp;
+            } else {
+                // Dacă e cont nou, creăm profilul implicit
+                const defaultName = currentUser.email.split('@')[0];
+                await _supabase.from('profiles').insert([{ id: currentUser.id, username: defaultName, xp: 0, level: 1 }]);
+                loadUserProfile();
             }
         }
 
-        // --- FILE HANDLING ---
-        async function handleFileUpload(input) {
-            const file = input.files[0];
-            if (!file) return;
+        function toggleEditProfile(show) {
+            document.getElementById('profile-view').classList.toggle('hidden', show);
+            document.getElementById('profile-edit').classList.toggle('hidden', !show);
+        }
 
-            document.getElementById('upload-status').innerText = "⏳ Se încarcă în cloud...";
-            
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const content = e.target.result;
-                const fileName = file.name.replace('.txt', '');
+        async function saveNewUsername() {
+            const newName = document.getElementById('edit-username-input').value;
+            if (!newName) return;
+            const { error } = await _supabase.from('profiles').update({ username: newName }).eq('id', currentUser.id);
+            if (!error) {
+                toggleEditProfile(false);
+                loadUserProfile();
+            }
+        }
 
-                const { data, error } = await _supabase.from('quizzes').insert([{
-                    user_id: gameState.userId,
-                    name: fileName,
-                    content: content,
-                    plays: 0
-                }]).select();
-
-                if (!error) {
-                    document.getElementById('upload-status').innerText = "✅ Salvat!";
-                    await loadCloudQuizzes();
-                    launchGame(data[0]);
-                }
-            };
-            reader.readAsText(file);
+        // --- QUIZ LOGIC (Delete & Load) ---
+        async function loadCloudQuizzes() {
+            const { data } = await _supabase.from('quizzes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+            cloudFiles = data || [];
+            renderHistory();
         }
 
         function renderHistory() {
-            const list = document.getElementById('history-list');
             const panel = document.getElementById('history-panel');
+            const list = document.getElementById('history-list');
             panel.style.display = cloudFiles.length > 0 ? 'block' : 'none';
             list.innerHTML = '';
 
             cloudFiles.forEach(file => {
-                const li = document.createElement('li');
-                li.className = 'history-item';
-                li.innerHTML = `
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div><b>${file.name}</b> <small>(Jucat: ${file.plays})</small></div>
                     <div>
-                        <span class="play-count-badge">Jucat: ${file.plays}</span>
-                        <strong>${file.name}</strong>
+                        <button class="btn-small" onclick="launchGameById('${file.id}')">▶ Joacă</button>
+                        <button class="btn-small btn-delete" onclick="deleteQuiz('${file.id}')">🗑️</button>
                     </div>
-                    <button class="replay-btn" onclick="replayCloudFile('${file.id}')">▶ Joacă</button>
                 `;
-                list.appendChild(li);
+                list.appendChild(item);
             });
         }
 
-        async function replayCloudFile(id) {
-            const file = cloudFiles.find(f => f.id === id);
-            if (file) {
-                await _supabase.from('quizzes').update({ plays: file.plays + 1 }).eq('id', id);
-                launchGame(file);
-            }
-        }
-
-        // --- GAME LOGIC ---
-        function launchGame(fileObj) {
-            parseQuestions(fileObj.content);
-            gameState.currentIndex = 0;
-            gameState.streak = 0;
-            gameState.userHistory = {};
-            gameState.mistakes = [];
-            
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('review-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            document.getElementById('home-btn-nav').classList.remove('hidden');
-            
-            updateGameHUD();
-            renderQuestion();
-        }
-
-        function parseQuestions(text) {
-            const rawBlocks = text.split('---');
-            gameState.questions = [];
-            rawBlocks.forEach(block => {
-                const lines = block.trim().split('\n').map(l => l.trim()).filter(l => l);
-                if (lines.length < 3) return;
-                let qObj = { text: '', options: {}, correct: [], explanation: '' };
-                lines.forEach(line => {
-                    if (line.startsWith('Q:')) qObj.text = line.substring(2).trim();
-                    else if (line.match(/^[A-Z]:/)) {
-                        let key = line.charAt(0);
-                        qObj.options[key] = line.substring(2).trim();
-                    }
-                    else if (line.startsWith('CORRECT:')) {
-                        qObj.correct = line.substring(8).trim().toUpperCase().split(',').map(s => s.trim());
-                    }
-                    else if (line.startsWith('EXPLICATIE:') || line.startsWith('RASPUNS:')) {
-                        qObj.explanation = line.substring(line.indexOf(':') + 1).trim();
-                    }
-                });
-                if (qObj.text && qObj.correct.length > 0) gameState.questions.push(qObj);
-            });
-            gameState.questions.sort(() => Math.random() - 0.5);
-        }
-
-        function renderQuestion() {
-            const q = gameState.questions[gameState.currentIndex];
-            const history = getHistory(gameState.currentIndex);
-
-            document.getElementById('explanation-container').classList.add('hidden');
-            document.getElementById('validate-btn').classList.add('hidden');
-            const container = document.getElementById('options-container');
-            container.innerHTML = '';
-
-            document.getElementById('question-text').innerText = q.text;
-            document.getElementById('q-counter').innerText = `${gameState.currentIndex + 1} / ${gameState.questions.length}`;
-            const isMulti = q.correct.length > 1;
-            document.getElementById('q-type').innerText = isMulti ? "Multi Choice" : "Single Choice";
-
-            for (const [key, value] of Object.entries(q.options)) {
-                const btn = document.createElement('div');
-                btn.className = 'btn-option';
-                btn.innerHTML = `<strong>${key})</strong> ${value}`;
-                
-                if (history.answered) {
-                    btn.style.pointerEvents = 'none';
-                    if (q.correct.includes(key)) btn.classList.add('correct');
-                    if (history.selected.includes(key) && !q.correct.includes(key)) btn.classList.add('wrong');
-                } else {
-                    btn.onclick = () => isMulti ? toggleMulti(key, btn) : checkSingle(key, btn);
-                    if (history.selected.includes(key)) btn.style.borderColor = 'var(--text-accent)';
+        async function deleteQuiz(id) {
+            if (confirm("Sigur vrei să ștergi această grilă definitiv din cloud?")) {
+                const { error } = await _supabase.from('quizzes').delete().eq('id', id);
+                if (!error) {
+                    cloudFiles = cloudFiles.filter(f => f.id !== id);
+                    renderHistory();
                 }
-                container.appendChild(btn);
-            }
-
-            if (!history.answered && isMulti) document.getElementById('validate-btn').classList.remove('hidden');
-            if (history.answered) {
-                document.getElementById('explanation-text').innerText = q.explanation || "Fără explicație.";
-                document.getElementById('explanation-container').classList.remove('hidden');
-            }
-            updateProgressBar();
-        }
-
-        async function finalizeAnswer(isCorrect, q, h) {
-            h.answered = true;
-            h.isCorrect = isCorrect;
-            if (isCorrect) {
-                gameState.streak++;
-                gameState.xp += (10 + gameState.streak * 2);
-                if(gameState.streak % 5 === 0) confetti({ particleCount: 100 });
-                checkLevelUp();
-            } else {
-                gameState.streak = 0;
-                gameState.mistakes.push({ question: q.text, yourAnswer: h.selected.join(','), correctAnswer: q.correct.join(','), explanation: q.explanation });
-            }
-            await syncStatsToCloud();
-            updateGameHUD();
-            renderQuestion();
-        }
-
-        async function syncStatsToCloud() {
-            await _supabase.from('profiles').update({
-                xp: gameState.xp,
-                level: gameState.level
-            }).eq('id', gameState.userId);
-        }
-
-        // --- HELPER FUNCTIONS ---
-        function getHistory(idx) {
-            if (!gameState.userHistory[idx]) gameState.userHistory[idx] = { answered: false, selected: [] };
-            return gameState.userHistory[idx];
-        }
-        function toggleMulti(key, btn) {
-            let h = getHistory(gameState.currentIndex);
-            if (h.selected.includes(key)) h.selected = h.selected.filter(k => k !== key);
-            else h.selected.push(key);
-            renderQuestion();
-        }
-        function submitMultiAnswer() {
-            const h = getHistory(gameState.currentIndex);
-            const q = gameState.questions[gameState.currentIndex];
-            const isCorrect = [...h.selected].sort().join(',') === [...q.correct].sort().join(',');
-            finalizeAnswer(isCorrect, q, h);
-        }
-        function checkSingle(key, btn) {
-            const h = getHistory(gameState.currentIndex);
-            const q = gameState.questions[gameState.currentIndex];
-            h.selected = [key];
-            finalizeAnswer(q.correct.includes(key), q, h);
-        }
-        function navigate(dir) {
-            const next = gameState.currentIndex + dir;
-            if (next >= 0 && next < gameState.questions.length) {
-                gameState.currentIndex = next;
-                renderQuestion();
-            } else if (next >= gameState.questions.length) {
-                finishChapter();
             }
         }
-        function finishChapter() {
-            document.getElementById('game-screen').classList.add('hidden');
-            document.getElementById('review-screen').classList.remove('hidden');
-            // Render greșeli...
-            confetti({ particleCount: 200, spread: 70 });
-        }
-        function goHome() {
-            location.reload(); // Reîncărcăm pentru a reflecta stats noi din cloud
-        }
-        function updateProfileUI() {
-            document.getElementById('lvl-start').innerText = gameState.level;
-            document.getElementById('xp-start').innerText = gameState.xp;
-        }
-        function updateGameHUD() {
-            document.getElementById('xp-display').innerText = gameState.xp;
-            document.getElementById('streak-display').innerText = gameState.streak;
-        }
-        function checkLevelUp() {
-            if (gameState.xp >= gameState.level * 100) gameState.level++;
-        }
-        function updateProgressBar() {
-            const pct = ((gameState.currentIndex + 1) / gameState.questions.length) * 100;
-            document.getElementById('progress-bar').style.width = `${pct}%`;
-        }
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-        }
+
+        // [Păstrează funcțiile handleFileUpload, parseQuestions și launchGame din codul anterior, adaptate la currentUser.id]
+        
+        window.onload = checkUser;
     </script>
 </body>
 </html>
-
-Deoarece Streamlit rulează într-un mediu securizat, asigură-te că URL-ul și Cheia Supabase sunt corecte. Dacă vrei să fie și mai sigur, poți să folosești Supabase Auth pe viitor pentru a avea logare reală cu email și parolă.
