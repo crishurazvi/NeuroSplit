@@ -31,13 +31,13 @@ st.markdown("""
 
     /* Stilizare Sidebar pentru aspect "Dark Mode" curat */
     section[data-testid="stSidebar"] {
-        background-color: #000000; /* Același negru ca în aplicația ta */
+        background-color: #FFFFFF; /* Același negru ca în aplicația ta */
         border-right: 1px solid rgba(255,255,255,0.1);
     }
     
     /* Facem textul din sidebar mai vizibil */
     div[data-testid="stSidebarNav"] * {
-        color: #ffffff !important;
+        color: #000000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
